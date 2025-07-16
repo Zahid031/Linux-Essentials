@@ -4,10 +4,10 @@ Effective logging and monitoring are crucial for maintaining system health, trou
 
 ### Table of Contents
 1.  [The `systemd` Journal](#1-the-systemd-journal)
-2.  [Traditional Log Files](#2-traditional-log-files)
-3.  [Kernel & Boot Messages](#3-kernel--boot-messages)
-4.  [Real-time Process Monitoring](#4-real-time-process-monitoring)
-5.  [The Next Step: Centralized Monitoring](#5-the-next-step-centralized-monitoring)
+2.  [Inspecting Log Files](#2-inspecting-log-files)
+3.  [Log Analysis with Pipes](#3-log-analysis-with-pipes)
+4.  [Kernel & Boot Messages](#4-kernel--boot-messages)
+5.  [Real-time Process Monitoring](#5-real-time-process-monitoring)
 
 ---
 
@@ -25,20 +25,34 @@ On modern Linux distributions, `journalctl` is the primary interface for queryin
 
 ---
 
-## 2. Traditional Log Files
+## 2. Inspecting Log Files
 
-Even on `systemd` systems, many applications still write to plain-text log files in `/var/log`.
+Many applications still write to plain-text log files, typically in `/var/log`.
 
 | Command | Purpose | Common Usage / Example |
 | :--- | :--- | :--- |
 | `tail` | View the end of a file. | `tail /var/log/syslog`: Show the last 10 lines. <br> `tail -n 100 /var/log/nginx/access.log`: Show the last 100 lines. |
 | `tail -f` | **F**ollow a file, showing new lines as they are added. | `tail -f /var/log/auth.log`: Watch for new authentication events in real-time. |
+| `head` | View the beginning of a file. | `head -n 50 /var/log/dmesg`: Show the first 50 lines. |
 | `less` | View a file interactively, allowing you to scroll and search. | `less +F /var/log/nginx/error.log`: Open the file and start in "follow" mode (like `tail -f`). Press `Ctrl+C` to stop following and search, then `Shift+F` to resume. |
 | `grep` | Search for patterns within log files. | `grep "Failed password" /var/log/auth.log`: Find all failed login attempts. |
 
 ---
 
-## 3. Kernel & Boot Messages
+## 3. Log Analysis with Pipes
+
+The true power of the command line comes from combining tools. This is essential for summarizing and understanding large log files.
+
+| Goal | Command Chain Example |
+| :--- | :--- |
+| **Count unique errors** | `grep "error" app.log | sort | uniq -c` |
+| **Find top 10 IP addresses in an access log** | `awk '{print $1}' /var/log/nginx/access.log | sort | uniq -c | sort -nr | head -n 10` |
+| **Count all lines containing a word** | `grep -c "warning" /var/log/syslog` |
+| **Show lines between two times** | `sed -n '/10:30:00/,/10:45:00/p' app.log` |
+
+---
+
+## 4. Kernel & Boot Messages
 
 | Command | Purpose | Common Usage / Example |
 | :--- | :--- | :--- |
@@ -46,7 +60,7 @@ Even on `systemd` systems, many applications still write to plain-text log files
 
 ---
 
-## 4. Real-time Process Monitoring
+## 5. Real-time Process Monitoring
 
 These tools provide a live dashboard of your system's resource usage.
 
@@ -56,15 +70,3 @@ These tools provide a live dashboard of your system's resource usage.
 | `htop` | An enhanced, user-friendly process monitor. | `htop`: Offers color, mouse support, and easier sorting/filtering. (May require `sudo apt install htop`). |
 | `glances` | A powerful, cross-platform monitoring tool with more detail than `top` or `htop`. | `glances`: Shows CPU, memory, disk I/O, network stats, and more in one view. (May require `sudo apt install glances`). |
 | `vmstat` | **V**irtual **M**emory **Stat**istics. Reports information about processes, memory, paging, block IO, traps, and cpu activity. | `vmstat 2`: Run every 2 seconds. Good for spotting I/O bottlenecks (`bi`, `bo`) or high context switching (`cs`). |
-
----
-
-## 5. The Next Step: Centralized Monitoring
-
-For production environments, command-line tools are used for immediate troubleshooting, but a centralized monitoring solution is essential for long-term health and alerting.
-
-*   **Prometheus:** An open-source systems monitoring and alerting toolkit that collects metrics from configured targets at given intervals.
-*   **Grafana:** An open-source platform for monitoring and observability that allows you to query, visualize, alert on, and explore your metrics, logs, and traces.
-*   **Loki:** A log aggregation system designed to store and query logs from all your applications and infrastructure.
-
-These tools work together to provide a comprehensive overview of your entire infrastructure's health.
